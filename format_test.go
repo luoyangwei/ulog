@@ -2,11 +2,13 @@ package ulog
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 )
 
 func TestColorFiexdhead(t *testing.T) {
-
-	head, _ := colorFiexdhead("info")
+	c := callerInfoBuilder(runtime.Caller(0))
+	c.level = InfoLevel
+	head, _ := colorFiexdhead(c)
 	fmt.Println(head)
 }

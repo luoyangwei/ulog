@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -108,13 +107,31 @@ const (
 	NotCallerInfoError = "无法获取调用者信息"
 )
 
-func colorFiexdhead(level string) (string, error) {
-	pc, file, lineNo, ok := caller()
-	if ok {
-		file = strings.Join([]string{strings.ReplaceAll(file, basicWorkPath, ".."), fmt.Sprint(lineNo)}, ":")
+// callerInfo 调用者信息
+type callerInfo struct {
+	level string  // level 调用等级
+	pc    uintptr // pc pc地址
+	file  string  // file 调用路径
+	line  int     // line 调用行
+	ok    bool    // ok 是否获取成功
+}
+
+// callerInfoBuilder 生成调用者信息
+func callerInfoBuilder(pc uintptr, file string, line int, ok bool) callerInfo {
+	return callerInfo{
+		pc:    pc,
+		file:  file,
+		line:  line,
+		ok:    ok,
+	}
+}
+
+func colorFiexdhead(caller callerInfo) (string, error) {
+	if caller.ok {
+		file := strings.Join([]string{strings.ReplaceAll(caller.file, basicWorkPath, ".."), fmt.Sprint(caller.line)}, ":")
 
 		var sLevel string
-		switch level {
+		switch caller.level {
 		case InfoLevel:
 			sLevel = "\x1b[36m[%-6s]\x1b[0m"
 		case DebugLevel:
@@ -126,8 +143,8 @@ func colorFiexdhead(level string) (string, error) {
 			sLevel = "\x1b[36m[%-6s]\x1b[0m"
 		}
 
-		sLevel = fmt.Sprintf(sLevel, strings.ToUpper(level))
-		s := fmt.Sprintf("\x1b[90m%s\x1b[0m [ %d ] - %s %-40s \x1b[36m->\x1b[0m ", dt.CNRFC3339Val, pc, sLevel, file)
+		sLevel = fmt.Sprintf(sLevel, strings.ToUpper(caller.level))
+		s := fmt.Sprintf("\x1b[90m%s\x1b[0m [ %d ] - %s %-40s \x1b[36m->\x1b[0m ", dt.CNRFC3339Val, caller.pc, sLevel, file)
 		return s, nil
 	}
 	return "", errors.New(NotCallerInfoError)
@@ -158,10 +175,6 @@ func colorFiexdhead(level string) (string, error) {
 // 	}
 // 	return "", errors.New(NotCallerInfoError)
 // }
-
-func caller() (pc uintptr, file string, line int, ok bool) {
-	return runtime.Caller(1)
-}
 
 // func colorFormat(fiexd, msg string) {
 

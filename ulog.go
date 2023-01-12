@@ -8,10 +8,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 )
 
 func init() {
@@ -20,18 +20,12 @@ func init() {
 	closeCh := make(chan os.Signal, 1)
 	signal.Notify(closeCh, syscall.SIGTERM, syscall.SIGINT)
 
-	// 测试关闭的情况
-	go func() {
-		time.Sleep(3 * time.Second)
-		closeCh <- syscall.SIGTERM
-	}()
-
 	go func() {
 		for {
 
 			// 等待call信号 执行逻辑
 			<-closeCh
-			fmt.Println("停止运行了,可以执行释放资源的方法")
+			// "停止运行了,可以执行释放资源的方法 "
 		}
 	}()
 }
@@ -96,19 +90,37 @@ const (
 )
 
 func (log *Logger) Info(msg string) {
-	write(log.writer, msg, InfoLevel)
+	c := callerInfoBuilder(runtime.Caller(0))
+	c.level = InfoLevel
+	write(log.writer, msg, c)
+}
+
+func (log *Logger) Infof(f, msg string) {
+	log.Info(fmt.Sprintf(f, msg))
 }
 
 func (log *Logger) Debug(msg string) {
-	write(log.writer, msg, DebugLevel)
+	c := callerInfoBuilder(runtime.Caller(0))
+	c.level = DebugLevel
+	write(log.writer, msg, c)
+}
+
+func (log *Logger) Debugf(f, msg string) {
+	log.Debug(fmt.Sprintf(f, msg))
 }
 
 func (log *Logger) Error(msg string) {
-	write(log.writer, msg, ErrorLevel)
+	c := callerInfoBuilder(runtime.Caller(0))
+	c.level = ErrorLevel
+	write(log.writer, msg, c)
+}
+
+func (log *Logger) Errorf(f, msg string) {
+	log.Error(fmt.Sprintf(f, msg))
 }
 
 // write 写文件
-func write(ws []io.Writer, msg, level string) {
+func write(ws []io.Writer, msg string, cinfo callerInfo) {
 	executeEvent(getEventMonitor(BeforeEvent), msg)
 
 	wg := sync.WaitGroup{}
@@ -117,7 +129,7 @@ func write(ws []io.Writer, msg, level string) {
 		go func(writer io.Writer) {
 
 			// 头部信息
-			head, _ := colorFiexdhead(level)
+			head, _ := colorFiexdhead(cinfo)
 
 			buffer := bufio.NewWriter(writer)
 			buffer.WriteString(fmt.Sprintf("%v %v\n", head, msg))
@@ -137,7 +149,9 @@ func (log *Logger) Writer(b []byte) (n int, err error) {
 	if len(b) <= -1 {
 		return 0, errors.New("bytes 长度必须大于0")
 	}
-	write(log.writer, string(b), "Debug")
+	c := callerInfoBuilder(runtime.Caller(1))
+	c.level = DebugLevel
+	write(log.writer, string(b), c)
 	return len(b), nil
 }
 
