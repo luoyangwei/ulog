@@ -96,7 +96,7 @@ func (log *Logger) Info(msg string) {
 	write(log.writer, msg, c)
 }
 
-func (log *Logger) Infof(f, msg string) {
+func (log *Logger) Infof(f string, msg ...string) {
 	log.Info(fmt.Sprintf(f, msg))
 }
 
@@ -106,7 +106,7 @@ func (log *Logger) Debug(msg string) {
 	write(log.writer, msg, c)
 }
 
-func (log *Logger) Debugf(f, msg string) {
+func (log *Logger) Debugf(f string, msg ...string) {
 	log.Debug(fmt.Sprintf(f, msg))
 }
 
@@ -116,7 +116,7 @@ func (log *Logger) Error(msg string) {
 	write(log.writer, msg, c)
 }
 
-func (log *Logger) Errorf(f, msg string) {
+func (log *Logger) Errorf(f string, msg ...string) {
 	log.Error(fmt.Sprintf(f, msg))
 }
 
